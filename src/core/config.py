@@ -22,4 +22,6 @@ class Settings:
 
     TWOGIS_REVIEW_URL: str = os.getenv("TWOGIS_REVIEW_URL", "")
 
+    RAILWAY_URL: str = os.getenv("RAILWAY_URL", "http://localhost:8000")
+
 settings = Settings()
