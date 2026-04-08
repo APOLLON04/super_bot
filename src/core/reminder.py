@@ -185,19 +185,92 @@ def check_and_send_review_requests():
 
 
 def run_reminder_loop():
-    """Запускает проверку каждые 30 секунд"""
     print("⏰ Планировщик напоминаний запущен...")
     while True:
         now = datetime.now()
 
-        # Напоминания каждый день в 10:00
+        # Напоминания за день — каждый день в 10:00
         if now.hour == 10 and now.minute == 0:
-            print(f"⏰ Напоминания ({now.strftime('%d.%m.%Y %H:%M')})")
+            print(f"⏰ Напоминания за день ({now.strftime('%d.%m.%Y %H:%M')})")
             check_and_send_reminders()
-            time.sleep(60)
+            time.sleep(61)
 
-        # Запросы отзывов каждые 30 минут
+        # Напоминания за 2 часа — каждые 15 минут проверяем
+        if now.minute % 15 == 0:
+            check_and_send_2hour_reminders()
+
+        # Запросы отзывов — каждые 30 минут
         if now.minute in (0, 30):
             check_and_send_review_requests()
 
         time.sleep(30)
+
+
+def check_and_send_2hour_reminders():
+    """Напоминание клиентам за 2 часа до записи"""
+    try:
+        now         = datetime.now()
+        target_from = (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M")
+        target_to   = (now + timedelta(hours=2, minutes=15)).strftime("%Y-%m-%dT%H:%M")
+
+        r = requests.get(
+            f"{settings.SUPABASE_URL}/rest/v1/bookings",
+            headers=SUPA_HEADERS,
+            params={
+                "booked_at": f"gte.{target_from}:00",
+                "status":    "in.(pending,confirmed)",
+                "order":     "booked_at.asc"
+            },
+            timeout=10
+        )
+        bookings = [
+            b for b in r.json()
+            if b["booked_at"][:16] <= target_to
+        ]
+
+        if not bookings:
+            return
+
+        import os
+        api_url = os.environ.get("RAILWAY_URL", "http://localhost:8000")
+        r2 = requests.get(f"{api_url}/api/v1/services", timeout=10)
+        services_map = {s["id"]: s["name"] for s in r2.json().get("services", [])}
+
+        for booking in bookings:
+            r3 = requests.get(
+                f"{settings.SUPABASE_URL}/rest/v1/profiles",
+                headers=SUPA_HEADERS,
+                params={"id": f"eq.{booking['client_id']}"},
+                timeout=10
+            )
+            profiles = r3.json()
+            if not profiles or not profiles[0].get("tg_id"):
+                continue
+
+            tg_id        = profiles[0]["tg_id"]
+            service_name = services_map.get(booking["service_id"], "услугу")
+
+            try:
+                dt       = datetime.fromisoformat(booking["booked_at"].replace("Z", "+00:00"))
+                time_str = dt.replace(tzinfo=None).strftime("%H:%M")
+            except Exception:
+                time_str = "—"
+
+            requests.post(
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id":    tg_id,
+                    "parse_mode": "HTML",
+                    "text": (
+                        f"⏰ <b>Напоминание!</b>\n\n"
+                        f"Через 2 часа вас ждём на:\n"
+                        f"💅 <b>{service_name}</b>\n"
+                        f"🕐 <b>в {time_str}</b>\n\n"
+                        "Ждём вас! 😊"
+                    )
+                }
+            )
+            print(f"✅ 2ч напоминание: tg_id={tg_id}")
+
+    except Exception as e:
+        print(f"❌ Ошибка 2ч напоминания: {e}")
