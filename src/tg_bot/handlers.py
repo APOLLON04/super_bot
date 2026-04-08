@@ -12,7 +12,7 @@ from src.core.finance import (
     parse_date_input, get_master_salary
 )
 
-API = "http://localhost:8000/api/v1"
+API = "https://web-production-bfb51b.up.railway.app/api/v1"
 SUPA_HEADERS = {
     "apikey":        settings.SUPABASE_ANON_KEY,
     "Authorization": f"Bearer {settings.SUPABASE_ANON_KEY}",

@@ -31,7 +31,7 @@ def get_revenue_for_period(date_from: str, date_to: str) -> dict:
 
     # Услуги для цен
     r2 = requests.get(
-        f"http://localhost:8000/api/v1/services", timeout=10
+        f"https://web-production-bfb51b.up.railway.app/api/v1/services", timeout=10
     )
     services_map = {s["id"]: s for s in r2.json().get("services", [])}
 
@@ -106,7 +106,7 @@ def get_master_salary(master_profile_id: str, date_from: str, date_to: str) -> d
     bookings = [b for b in bookings if b["booked_at"] <= f"{date_to}T23:59:59"]
 
     r4 = requests.get(
-        f"http://localhost:8000/api/v1/services", timeout=10
+        f"https://web-production-bfb51b.up.railway.app/api/v1/services", timeout=10
     )
     services_map = {s["id"]: s for s in r4.json().get("services", [])}
 

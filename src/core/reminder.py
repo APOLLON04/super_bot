@@ -42,7 +42,7 @@ def check_and_send_reminders():
 
         # Берём услуги для названий
         r2 = requests.get(
-            f"http://localhost:8000/api/v1/services", timeout=10
+            f"https://web-production-bfb51b.up.railway.app/api/v1/services", timeout=10
         )
         services_map = {s["id"]: s["name"] for s in r2.json().get("services", [])}
 
@@ -130,7 +130,7 @@ def check_and_send_review_requests():
 
         # Получаем услуги
         r2 = requests.get(
-            f"http://localhost:8000/api/v1/services", timeout=10
+            f"https://web-production-bfb51b.up.railway.app/api/v1/services", timeout=10
         )
         services_map = {s["id"]: s for s in r2.json().get("services", [])}
 
